@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Times Tables Hero</title>
+<style>
+:root{
+  --navy:#0d2745; --blue:#1788f2; --yellow:#ffd33d; --pink:#ff62b4;
+  --orange:#ff7a1a; --green:#22c55e; --red:#ef4444; --paper:#fffaf0;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:linear-gradient(180deg,#284b8a,#8c5d7d 52%,#26351f);
+  color:white;
+}
+button,input,select{font:inherit}
+.screen{display:none;min-height:100vh;padding:18px}
+.screen.active{display:block}
+.shell{width:min(1180px,100%);margin:auto}
+
+.heroTitle{text-align:center;margin:4px 0 18px}
+.heroTitle h1{
+  display:inline-block;margin:0;padding:8px 20px;
+  font-size:clamp(2.4rem,6vw,5.2rem);font-weight:1000;line-height:.9;
+  color:var(--yellow);text-shadow:4px 4px 0 #111,7px 7px 0 #d62929;
+  transform:rotate(-1deg)
+}
+.heroTitle p{margin:14px auto 0;background:#ffe38f;color:#13213d;border:3px solid #13213d;border-radius:12px;padding:7px 14px;font-weight:900;max-width:700px}
+
+.menuCards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.modeCard{
+  border-radius:28px;padding:18px;border:5px solid #111a;box-shadow:0 12px 28px #0006;overflow:hidden
+}
+.cheerCard{background:linear-gradient(180deg,#173a78,#081b3a 58%,#dceeff 58%)}
+.monsterCard{background:linear-gradient(180deg,#92400e,#f59e0b 58%,#fff1c9 58%)}
+.modeCard h2{text-align:center;font-size:clamp(1.7rem,3.4vw,3rem);margin:0 0 4px;text-shadow:3px 3px 0 #111}
+.cheerCard h2{color:var(--pink)} .monsterCard h2{color:#ff6b18}
+.tag{text-align:center;font-weight:900;margin-bottom:10px}
+.scene{height:240px;position:relative;display:flex;align-items:end;justify-content:space-between;padding:0 22px}
+.bigEmoji{font-size:clamp(6rem,13vw,10rem);filter:drop-shadow(0 8px 4px #0005)}
+.zombies{display:flex;gap:0;align-items:end}
+.zombies span{font-size:clamp(3rem,6vw,5rem);margin-left:-8px}
+.rules{color:#14213d;font-weight:750;line-height:1.45;min-height:125px;padding:15px}
+.playBtn{width:100%;border:0;border-radius:18px;padding:14px 18px;color:#fff;font-size:1.25rem;font-weight:1000;cursor:pointer;box-shadow:0 6px 0 #0005}
+.cheerBtn{background:linear-gradient(#2bd06f,#16a34a)} .monsterBtn{background:linear-gradient(#ff8c22,#ea580c)}
+
+.settings{margin-top:18px;background:#0b2949ee;border:3px solid #5aa1da;border-radius:20px;padding:15px}
+.settings h3{margin:0 0 10px}
+.tables{display:flex;gap:8px;flex-wrap:wrap}
+.tables label{background:#415a78;padding:8px 12px;border-radius:10px;font-weight:900;cursor:pointer}
+.tables label:has(input:checked){background:#1688f3}
+.tables input{margin-right:5px}
+.footer{text-align:center;font-weight:1000;color:#ffe76b;margin:16px 0 4px;font-size:1.2rem}
+
+/* shared game header */
+.gameTop{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:12px}
+.backBtn{border:0;border-radius:12px;padding:10px 14px;background:#e2e8f0;color:#10213d;font-weight:900;cursor:pointer}
+.gameTitle{font-size:clamp(1.7rem,4vw,3rem);font-weight:1000;text-align:right}
+.panel{background:#ffffffee;color:#10213d;border-radius:22px;border:4px solid #fff;box-shadow:0 12px 28px #0004;padding:18px}
+.question{font-size:clamp(3rem,9vw,6rem);font-weight:1000;text-align:center;margin:8px 0}
+.answer{display:block;margin:auto;width:min(260px,85%);font-size:2.5rem;font-weight:900;text-align:center;padding:10px;border:4px solid #60a5fa;border-radius:18px;outline:none}
+.submit{display:block;margin:12px auto 0;border:0;border-radius:16px;padding:12px 28px;background:#22c55e;color:white;font-weight:1000;font-size:1.2rem;cursor:pointer}
+.message{min-height:34px;text-align:center;font-weight:900;margin-top:10px}.good{color:#15803d}.bad{color:#b91c1c}
+
+/* Cheerleader mode */
+.cheerLayout{display:grid;grid-template-columns:1.25fr .75fr;gap:18px}
+.arena{position:relative;height:380px;overflow:hidden;border-radius:22px;background:linear-gradient(#b9d8ff 0 55%,#7dcf73 55% 100%);border:4px solid white}
+.cheerleader{position:absolute;left:24px;bottom:35px;font-size:76px}
+.cheerPom{position:absolute;font-size:36px}.lp{left:0;bottom:60px}.rp{left:90px;bottom:60px}
+.cheerSign{position:absolute;left:4px;bottom:120px;background:#fff;border:3px solid #ec4899;color:#be185d;border-radius:10px;padding:4px 8px;font-weight:1000}
+.zombie{position:absolute;bottom:40px;font-size:58px;transition:left .3s,transform .25s,opacity .25s}
+.zombie.hit{transform:translateX(80px) rotate(20deg) scale(.7);opacity:0}
+.meter{height:16px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.bar{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#facc15,#f97316)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:#0e2e53;border-radius:14px;padding:9px;text-align:center}.stat b{display:block;font-size:1.35rem}
+.sideStack{display:grid;gap:12px}
+.duration select{width:100%;padding:8px;border-radius:10px;margin-top:6px}
+
+/* Monster mode */
+.battleTop{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.scoreBox{background:#0e2e53;border:3px solid #6da5d9;border-radius:18px;padding:12px}.scoreBox:last-child{border-color:#6dcc76}
+.scoreName{font-size:1.25rem;font-weight:1000}.scoreLine{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.hearts{font-size:1.55rem;white-space:nowrap;overflow:hidden}.scoreNum{font-size:2.6rem;font-weight:1000}
+.battleScene{display:grid;grid-template-columns:1fr minmax(300px,520px) 1fr;gap:18px;align-items:center}
+.fighter{text-align:center;font-size:clamp(7rem,16vw,13rem);filter:drop-shadow(0 8px 4px #0005)}
+.attack{animation:attack .35s ease}.hitAnim{animation:hit .35s ease}
+@keyframes attack{50%{transform:translateX(24px) scale(1.08)}}@keyframes hit{35%{transform:translateX(-25px) rotate(-8deg)}}
+
+.overlay{position:fixed;inset:0;background:#07111ddd;display:none;place-items:center;padding:20px;z-index:20}
+.overlay .panel{max-width:520px;width:100%;text-align:center}
+.overlay h2{font-size:2.3rem;margin:0 0 10px}
+.overlay button{border:0;border-radius:14px;padding:12px 24px;background:#1788f2;color:white;font-weight:1000;cursor:pointer}
+
+@media(max-width:850px){
+  .menuCards,.cheerLayout,.battleScene{grid-template-columns:1fr}
+  .scene{height:190px}.rules{min-height:auto}
+  .battleTop{grid-template-columns:1fr}
+  .fighter{font-size:7rem}
+}
+</style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d2745">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Times Tables Hero">
+<link rel="apple-touch-icon" href="icon-180.png">
+
+</head>
+<body>
+
+<!-- MENU -->
+<section id="menu" class="screen active">
+  <div class="shell">
+    <div class="heroTitle">
+      <h1>TIMES TABLES HERO</h1>
+      <p>Pick a game and put your maths skills to the test!</p>
+    </div>
+
+    <div class="menuCards">
+      <div class="modeCard cheerCard">
+        <h2>SAVE THE CHEERLEADER</h2>
+        <div class="tag">Keep the zombies away for as long as you can!</div>
+        <div class="scene">
+          <div class="bigEmoji">📣👧</div>
+          <div class="zombies"><span>🧟</span><span>🧟‍♂️</span><span>🧟‍♀️</span></div>
+        </div>
+        <div class="rules">
+          ⏱️ Timed game: 30 seconds to 2 minutes<br>
+          🧟 Zombies get closer when you're wrong<br>
+          🏆 Survive the round and keep the cheerleader safe!
+        </div>
+        <button class="playBtn cheerBtn" id="playCheer">PLAY SAVE THE CHEERLEADER ▶</button>
+      </div>
+
+      <div class="modeCard monsterCard">
+        <h2>DEFEAT THE MONSTER</h2>
+        <div class="tag">Go head-to-head and beat the monster!</div>
+        <div class="scene">
+          <div class="bigEmoji">🦸</div>
+          <div class="bigEmoji">👹</div>
+        </div>
+        <div class="rules">
+          ❤️ You both start with 10 points<br>
+          ⚔️ Correct answer = monster loses 1 point<br>
+          ❌ Wrong answer = you lose 1 point<br>
+          🏆 First to get the other's score to 0 wins!
+        </div>
+        <button class="playBtn monsterBtn" id="playMonster">PLAY DEFEAT THE MONSTER ▶</button>
+      </div>
+    </div>
+
+    <div class="settings">
+      <h3>CHOOSE YOUR TIMES TABLES</h3>
+      <div class="tables" id="menuTables"></div>
+      <div style="margin-top:8px;font-size:.9rem">Default: 6, 7, 8, 11 and 12</div>
+    </div>
+
+    <div class="footer">⭐ SMALL STEPS. BIGGER BRAINS! ⭐</div>
+  </div>
+</section>
+
+<!-- CHEERLEADER GAME -->
+<section id="cheerGame" class="screen">
+  <div class="shell">
+    <div class="gameTop">
+      <button class="backBtn" data-back>← Main menu</button>
+      <div class="gameTitle">📣 SAVE THE CHEERLEADER</div>
+    </div>
+    <div class="stats">
+      <div class="stat">Score<b id="cScore">0</b></div>
+      <div class="stat">Zapped<b id="cZapped">0</b></div>
+      <div class="stat">Time<b><span id="cTime">60</span>s</b></div>
+    </div>
+    <div class="meter" style="margin-bottom:12px"><div id="cTimeBar" class="bar"></div></div>
+
+    <div class="cheerLayout">
+      <div class="arena">
+        <div class="cheerleader">👧</div>
+        <div class="cheerPom lp">✨</div>
+        <div class="cheerPom rp">✨</div>
+        <div class="cheerSign">SAVE ME!</div>
+        <div id="zombieLane"></div>
+      </div>
+      <div class="sideStack">
+        <div class="panel">
+          <div class="question" id="cQuestion">7 × 8</div>
+          <input class="answer" id="cAnswer" type="number" inputmode="numeric">
+          <button class="submit" id="cSubmit">SUBMIT</button>
+          <div class="message" id="cMessage">Zap the zombies with your maths!</div>
+        </div>
+        <div class="panel duration">
+          <b>Game length</b>
+          <select id="cDuration">
+            <option value="30">30 seconds</option>
+            <option value="60" selected>60 seconds</option>
+            <option value="90">90 seconds</option>
+            <option value="120">2 minutes</option>
+          </select>
+          <button class="submit" id="cRestart">START / RESTART</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MONSTER GAME -->
+<section id="monsterGame" class="screen">
+  <div class="shell">
+    <div class="gameTop">
+      <button class="backBtn" data-back>← Main menu</button>
+      <div class="gameTitle">🦸 DEFEAT THE MONSTER</div>
+    </div>
+
+    <div class="battleTop">
+      <div class="scoreBox">
+        <div class="scoreName">YOU (Superhero)</div>
+        <div class="scoreLine"><div class="hearts" id="heroHearts"></div><div class="scoreNum" id="heroScore">10</div></div>
+      </div>
+      <div class="scoreBox">
+        <div class="scoreName">MONSTER</div>
+        <div class="scoreLine"><div class="hearts" id="monsterHearts"></div><div class="scoreNum" id="monsterScore">10</div></div>
+      </div>
+    </div>
+
+    <div class="battleScene">
+      <div class="fighter" id="heroSprite">🦸</div>
+      <div class="panel">
+        <div style="text-align:center;font-weight:900;font-size:1.3rem">What is…</div>
+        <div class="question" id="mQuestion">7 × 8 = ?</div>
+        <input class="answer" id="mAnswer" type="number" inputmode="numeric">
+        <button class="submit" id="mSubmit">SUBMIT</button>
+        <div class="message" id="mMessage">Beat the monster with your maths!</div>
+        <button class="submit" style="background:#1788f2" id="mRestart">NEW BATTLE</button>
+      </div>
+      <div class="fighter" id="monsterSprite">👹</div>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2 id="overlayTitle"></h2>
+    <p id="overlayText" style="font-size:1.2rem"></p>
+    <button id="overlayBtn">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const menuTables=$('menuTables');
+for(let i=2;i<=12;i++){
+  const l=document.createElement('label');
+  l.innerHTML=`<input type="checkbox" value="${i}" ${[6,7,8,11,12].includes(i)?'checked':''}> ${i}×`;
+  menuTables.appendChild(l);
+}
+function selectedTables(){
+  const v=[...menuTables.querySelectorAll('input:checked')].map(x=>+x.value);
+  return v.length?v:[6,7,8,11,12];
+}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>{
+  stopCheer(); show('menu');
+}));
+$('playCheer').addEventListener('click',()=>{show('cheerGame');startCheer()});
+$('playMonster').addEventListener('click',()=>{show('monsterGame');resetMonster()});
+
+/* ---------- Cheerleader ---------- */
+let cScore=0,cZapped=0,cRemaining=60,cTotal=60,cTimer=null,cAnswer=0,cRunning=false,cZombies=[];
+function spawnZombie(pos){
+  const z=document.createElement('div');z.className='zombie';z.textContent=['🧟','🧟‍♂️','🧟‍♀️'][rnd(0,2)];
+  z.dataset.pos=pos??(760+rnd(0,80));z.style.left=z.dataset.pos+'px';$('zombieLane').appendChild(z);cZombies.push(z);
+}
+function removeZombie(z){cZombies=cZombies.filter(x=>x!==z);if(z.parentNode)z.remove()}
+function resetZombies(){
+  cZombies.forEach(removeZombie);cZombies=[];
+  [500,610,720].forEach(spawnZombie);
+}
+function moveZombies(amount){
+  cZombies.slice().forEach(z=>{
+    let p=+z.dataset.pos-amount;z.dataset.pos=p;z.style.left=p+'px';
+    if(p<145){endCheer(false)}
+  });
+}
+function zapZombie(){
+  if(!cZombies.length)spawnZombie(720);
+  const z=cZombies.reduce((a,b)=>+a.dataset.pos<+b.dataset.pos?a:b);
+  z.classList.add('hit');setTimeout(()=>removeZombie(z),220);
+  cZapped++;$('cZapped').textContent=cZapped;
+  if(cZombies.length<2)spawnZombie(740);
+}
+function newCQuestion(){
+  const tabs=selectedTables(),a=tabs[rnd(0,tabs.length-1)],b=rnd(1,12);
+  cAnswer=a*b;$('cQuestion').textContent=`${a} × ${b}`;
+  $('cAnswer').value='';$('cAnswer').focus();
+}
+function startCheer(){
+  stopCheer();cScore=0;cZapped=0;cTotal=+$('cDuration').value;cRemaining=cTotal;cRunning=true;
+  $('cScore').textContent=0;$('cZapped').textContent=0;$('cTime').textContent=cRemaining;$('cTimeBar').style.width='100%';
+  $('cMessage').textContent='Save the cheerleader from the zombies!';$('cMessage').className='message';
+  resetZombies();newCQuestion();
+  cTimer=setInterval(()=>{
+    cRemaining--;$('cTime').textContent=cRemaining;$('cTimeBar').style.width=(cRemaining/cTotal*100)+'%';
+    if(cRemaining%2===0)moveZombies(28);
+    if(cRemaining%5===0&&cZombies.length<5)spawnZombie();
+    if(cRemaining<=0)endCheer(true);
+  },1000);
+}
+function stopCheer(){clearInterval(cTimer);cTimer=null;cRunning=false}
+function checkCheer(){
+  if(!cRunning||$('cAnswer').value==='')return;
+  if(+$('cAnswer').value===cAnswer){
+    cScore++;$('cScore').textContent=cScore;zapZombie();$('cMessage').textContent='✅ Correct — ZAP!';$('cMessage').className='message good';newCQuestion();
+  }else{
+    $('cMessage').textContent=`❌ Wrong — it was ${cAnswer}. Zombies move closer!`;$('cMessage').className='message bad';moveZombies(42);$('cAnswer').select();
+  }
+}
+function endCheer(won){
+  if(!cRunning)return;stopCheer();
+  $('overlayTitle').textContent=won?'🏆 CHEERLEADER SAVED!':'🧟 THE ZOMBIES GOT THROUGH!';
+  $('overlayText').textContent=won?`You scored ${cScore} and zapped ${cZapped} zombies!`:`You scored ${cScore}. Try again and hold them off!`;
+  $('overlay').style.display='grid';$('overlayBtn').onclick=()=>{$('overlay').style.display='none';startCheer()};
+}
+$('cSubmit').onclick=checkCheer;$('cAnswer').addEventListener('keydown',e=>{if(e.key==='Enter')checkCheer()});$('cRestart').onclick=startCheer;
+
+/* ---------- Monster ---------- */
+let hero=10,monster=10,mAnswer=0,mPlaying=true;
+function hearts(n){return '❤️'.repeat(n)}
+function updateBattle(){
+  $('heroScore').textContent=hero;$('monsterScore').textContent=monster;$('heroHearts').textContent=hearts(hero);$('monsterHearts').textContent=hearts(monster);
+}
+function newMQuestion(){
+  const tabs=selectedTables(),a=tabs[rnd(0,tabs.length-1)],b=rnd(1,12);mAnswer=a*b;
+  $('mQuestion').textContent=`${a} × ${b} = ?`;$('mAnswer').value='';$('mAnswer').focus();
+}
+function anim(el,cls){el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);setTimeout(()=>el.classList.remove(cls),350)}
+function resetMonster(){
+  hero=10;monster=10;mPlaying=true;updateBattle();newMQuestion();$('mMessage').textContent='Beat the monster with your maths!';$('mMessage').className='message';
+}
+function checkMonster(){
+  if(!mPlaying||$('mAnswer').value==='')return;
+  if(+$('mAnswer').value===mAnswer){
+    monster--;anim($('heroSprite'),'attack');anim($('monsterSprite'),'hitAnim');$('mMessage').textContent='💥 Correct! Monster loses 1 point!';$('mMessage').className='message good';
+  }else{
+    hero--;anim($('monsterSprite'),'attack');anim($('heroSprite'),'hitAnim');$('mMessage').textContent=`❌ Wrong — it was ${mAnswer}. You lose 1 point!`;$('mMessage').className='message bad';
+  }
+  updateBattle();
+  if(monster<=0)return endMonster(true);
+  if(hero<=0)return endMonster(false);
+  setTimeout(newMQuestion,400);
+}
+function endMonster(won){
+  mPlaying=false;$('overlayTitle').textContent=won?'🦸 SUPERHERO WINS!':'👹 MONSTER WINS!';
+  $('overlayText').textContent=won?'You defeated the monster with your times-table skills!':'The monster won this battle — try again and get your revenge!';
+  $('overlay').style.display='grid';$('overlayBtn').onclick=()=>{$('overlay').style.display='none';resetMonster()};
+}
+$('mSubmit').onclick=checkMonster;$('mAnswer').addEventListener('keydown',e=>{if(e.key==='Enter')checkMonster()});$('mRestart').onclick=resetMonster;
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
