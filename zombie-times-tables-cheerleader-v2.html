@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zombie Times Tables!</title>
+<style>
+  :root{
+    --ink:#172033; --panel:#ffffffec; --good:#15803d; --bad:#b91c1c;
+    --accent:#f59e0b; --blue:#2563eb; --zombie:#84cc16; --ground:#365314;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--ink); padding:16px;
+    background:linear-gradient(#93c5fd 0 45%, #bbf7d0 45% 100%);
+  }
+  .wrap{width:min(920px,100%);margin:auto}
+  .card{
+    background:var(--panel); border-radius:26px; padding:18px;
+    box-shadow:0 20px 60px #0002; backdrop-filter: blur(8px);
+  }
+  h1{margin:0;text-align:center;font-size:clamp(2rem,5vw,3.4rem)}
+  .sub{text-align:center;margin:4px 0 14px;color:#475569}
+  .top{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+  .stat{background:white;border-radius:16px;padding:8px;text-align:center;box-shadow:0 4px 12px #0001;font-size:.9rem}
+  .stat b{display:block;font-size:1.3rem}
+  .arena{
+    position:relative;height:330px;overflow:hidden;border-radius:22px;
+    background:linear-gradient(#bfdbfe 0 55%, #86efac 55% 100%);
+    border:4px solid #fff; box-shadow:inset 0 0 0 2px #00000010;
+  }
+  .sun{position:absolute;right:30px;top:20px;font-size:54px}
+  .cloud{position:absolute;font-size:42px;opacity:.85}
+  .cloud.c1{left:70px;top:30px}.cloud.c2{left:250px;top:65px}
+  .cheerleader{
+    position:absolute;left:25px;bottom:24px;width:135px;height:145px;text-align:center;
+  }
+  .girl{position:absolute;left:38px;bottom:25px;font-size:76px;filter:drop-shadow(0 4px 2px #0002)}
+  .pom{position:absolute;bottom:62px;font-size:38px;animation:cheer .7s infinite alternate ease-in-out}
+  .leftPom{left:3px}.rightPom{right:0;animation-delay:.35s}
+  .cheerText{
+    position:absolute;left:8px;right:8px;top:0;background:white;border:3px solid #ec4899;
+    border-radius:12px;padding:4px;font-size:14px;font-weight:1000;color:#be185d;
+    box-shadow:0 3px 0 #0001;
+  }
+  @keyframes cheer{
+    from{transform:rotate(-15deg) translateY(2px)}
+    to{transform:rotate(15deg) translateY(-5px)}
+  }
+  #hero{position:absolute;left:170px;bottom:42px;font-size:54px;transform:scaleX(-1)}
+  #zombieLane{position:absolute;inset:0}
+  .zombie{
+    position:absolute;bottom:38px;font-size:58px;transition:transform .25s, opacity .25s, left .35s;
+    filter:drop-shadow(0 4px 2px #0002);
+  }
+  .zombie.hit{transform:translateX(90px) rotate(20deg) scale(.7);opacity:0}
+  .blast{
+    position:absolute;left:220px;bottom:70px;font-size:34px;opacity:0;
+    animation:blast .35s ease-out;
+  }
+  @keyframes blast{
+    0%{opacity:1;transform:translateX(0) scale(.6)}
+    100%{opacity:0;transform:translateX(420px) scale(1.4)}
+  }
+  .questionZone{text-align:center;padding:14px 0 2px}
+  #question{font-size:clamp(2.6rem,8vw,5rem);font-weight:900;margin:5px 0}
+  #answer{
+    width:min(230px,70%);font-size:2.1rem;text-align:center;padding:10px;border:4px solid #bfdbfe;
+    border-radius:16px;outline:none;font-weight:900
+  }
+  #answer:focus{border-color:#60a5fa}
+  #message{min-height:30px;font-size:1.15rem;font-weight:800;margin-top:8px}
+  .good{color:var(--good)} .bad{color:var(--bad)}
+  .buttons{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{border:0;border-radius:15px;padding:11px 17px;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #0002}
+  button:active{transform:translateY(2px);box-shadow:0 2px 0 #0002}
+  .start{background:#22c55e;color:white}.secondary{background:#e2e8f0}.danger{background:#ef4444;color:#fff}
+  .meter{height:17px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:12px 0}
+  #timeBar{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#facc15,#f97316)}
+  .healthWrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .healthWrap span{font-weight:800;min-width:75px}
+  .health{height:16px;background:#fee2e2;border-radius:999px;overflow:hidden;flex:1}
+  #healthBar{height:100%;width:100%;background:#22c55e;transition:width .25s}
+  .settings{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:14px}
+  .panel{background:#fff;border-radius:16px;padding:12px}
+  select{width:100%;padding:8px;border-radius:10px;border:1px solid #cbd5e1;font-size:1rem;margin-top:6px}
+  .tables{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+  .tables label{background:#f1f5f9;padding:6px 8px;border-radius:9px;font-weight:700}
+  #overlay{
+    position:fixed;inset:0;background:#0f172acc;display:none;place-items:center;padding:20px;z-index:20
+  }
+  #overlay .card{max-width:520px;width:100%;text-align:center}
+  #finalScore{font-size:4rem;font-weight:900}
+  .small{font-size:.9rem;color:#64748b}
+  @media(max-width:650px){
+    .top{grid-template-columns:repeat(2,1fr)}
+    .settings{grid-template-columns:1fr}
+    .arena{height:280px}
+    .cheerleader{transform:scale(.85);transform-origin:left bottom}
+    #hero{left:145px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🧟 Zombie Times Tables!</h1>
+    <p class="sub">Answer quickly to zap the silly zombies and save the cheerleader!</p>
+
+    <div class="top">
+      <div class="stat">Score<b id="score">0</b></div>
+      <div class="stat">Streak<b id="streak">0</b></div>
+      <div class="stat">Zapped<b id="zapped">0</b></div>
+      <div class="stat">Best<b id="best">0</b></div>
+      <div class="stat">Time<b><span id="time">60</span>s</b></div>
+    </div>
+
+    <div class="meter"><div id="timeBar"></div></div>
+
+    <div class="arena">
+      <div class="sun">☀️</div>
+      <div class="cloud c1">☁️</div>
+      <div class="cloud c2">☁️</div>
+      <div class="cheerleader" aria-label="Cheerleader">
+        <div class="pom leftPom">✨</div>
+        <div class="girl">👧</div>
+        <div class="pom rightPom">✨</div>
+        <div class="cheerText">SAVE ME!</div>
+      </div>
+      <div id="hero">🧙</div>
+      <div id="zombieLane"></div>
+      <div id="blastLayer"></div>
+    </div>
+
+    <div class="healthWrap">
+      <span>Cheerleader safety</span>
+      <div class="health"><div id="healthBar"></div></div>
+    </div>
+
+    <div class="questionZone">
+      <div id="question">Ready?</div>
+      <input id="answer" type="number" inputmode="numeric" autocomplete="off" disabled>
+      <div id="message">Choose your tables and start the zombie maths challenge!</div>
+      <div class="buttons">
+        <button id="startBtn" class="start">▶ Start game</button>
+        <button id="skipBtn" class="secondary" disabled>Skip</button>
+      </div>
+    </div>
+
+    <div class="settings">
+      <div class="panel">
+        <b>Game length</b>
+        <select id="duration">
+          <option value="30">30 seconds</option>
+          <option value="60" selected>60 seconds</option>
+          <option value="90">90 seconds</option>
+          <option value="120">2 minutes</option>
+        </select>
+        <p class="small">Every wrong answer lets the zombies creep closer to the cheerleader.</p>
+      </div>
+      <div class="panel">
+        <b>Choose times tables</b>
+        <div class="tables" id="tables"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h2 id="endTitle">🏁 Round over!</h2>
+    <div id="finalScore">0</div>
+    <p id="finalText"></p>
+    <button class="start" id="againBtn">Play again</button>
+  </div>
+</div>
+
+<script>
+const tablesBox=document.getElementById('tables');
+for(let i=2;i<=12;i++){
+  const l=document.createElement('label');
+  l.innerHTML=`<input type="checkbox" value="${i}" ${[6,7,8,11,12].includes(i)?'checked':''}> ${i}×`;
+  tablesBox.appendChild(l);
+}
+
+const $=id=>document.getElementById(id);
+const qEl=$('question'), aEl=$('answer'), scoreEl=$('score'), streakEl=$('streak'),
+      zappedEl=$('zapped'), bestEl=$('best'), timeEl=$('time'), msgEl=$('message'),
+      startBtn=$('startBtn'), skipBtn=$('skipBtn'), durationEl=$('duration'),
+      timeBar=$('timeBar'), healthBar=$('healthBar'), lane=$('zombieLane'),
+      blastLayer=$('blastLayer'), overlay=$('overlay'), finalScore=$('finalScore'),
+      finalText=$('finalText'), endTitle=$('endTitle'), againBtn=$('againBtn');
+
+let score=0,streak=0,zapped=0,remaining=60,total=60,timer=null,answer=0,running=false,health=100;
+let zombieCounter=0;
+let zombies=[];
+let best=Number(localStorage.getItem('zombie-tt-best')||0);
+bestEl.textContent=best;
+
+function selectedTables(){
+  return [...tablesBox.querySelectorAll('input:checked')].map(x=>Number(x.value));
+}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+function spawnZombie(){
+  const z=document.createElement('div');
+  z.className='zombie';
+  z.textContent = ['🧟','🧟‍♂️','🧟‍♀️'][rnd(0,2)];
+  z.style.left=(780+rnd(0,90))+'px';
+  z.dataset.pos=780+rnd(0,30);
+  z.dataset.id=++zombieCounter;
+  lane.appendChild(z);
+  zombies.push(z);
+}
+
+function moveZombies(amount=55){
+  zombies.forEach(z=>{
+    let p=Number(z.dataset.pos)-amount;
+    z.dataset.pos=p;
+    z.style.left=p+'px';
+    if(p<175){
+      damageBase(20);
+      removeZombie(z);
+    }
+  });
+}
+
+function removeZombie(z){
+  zombies=zombies.filter(x=>x!==z);
+  if(z.parentNode) z.parentNode.removeChild(z);
+}
+
+function blastZombie(){
+  if(!zombies.length) spawnZombie();
+  const target=zombies.reduce((a,b)=>Number(a.dataset.pos)<Number(b.dataset.pos)?a:b);
+  const blast=document.createElement('div');
+  blast.className='blast'; blast.textContent='✨';
+  blastLayer.appendChild(blast);
+  setTimeout(()=>blast.remove(),400);
+  target.classList.add('hit');
+  setTimeout(()=>removeZombie(target),220);
+  zapped++; zappedEl.textContent=zapped;
+  if(zombies.length<2) spawnZombie();
+}
+
+function damageBase(n){
+  health=Math.max(0,health-n);
+  healthBar.style.width=health+'%';
+  healthBar.style.background=health>60?'#22c55e':health>30?'#f59e0b':'#ef4444';
+  if(health<=0) endGame(true);
+}
+
+function newQuestion(){
+  const tabs=selectedTables();
+  if(!tabs.length){
+    running=false;clearInterval(timer);
+    msgEl.textContent='Choose at least one times table.';
+    msgEl.className='bad';aEl.disabled=true;skipBtn.disabled=true;startBtn.disabled=false;
+    return;
+  }
+  const x=tabs[rnd(0,tabs.length-1)], y=rnd(1,12);
+  answer=x*y;
+  qEl.textContent=Math.random()<.5?`${x} × ${y}`:`${y} × ${x}`;
+  aEl.value=''; aEl.focus();
+}
+
+function resetArena(){
+  zombies.forEach(removeZombie); zombies=[];
+  for(let i=0;i<3;i++){
+    spawnZombie();
+    const z=zombies[zombies.length-1];
+    const p=500+i*115;
+    z.dataset.pos=p;z.style.left=p+'px';
+  }
+}
+
+function startGame(){
+  clearInterval(timer);
+  score=0;streak=0;zapped=0;health=100;running=true;
+  total=Number(durationEl.value);remaining=total;
+  scoreEl.textContent=0;streakEl.textContent=0;zappedEl.textContent=0;timeEl.textContent=remaining;
+  timeBar.style.width='100%';healthBar.style.width='100%';healthBar.style.background='#22c55e';
+  msgEl.textContent='Save the cheerleader from the zombies! 📣🧟';msgEl.className='';
+  aEl.disabled=false;skipBtn.disabled=false;startBtn.disabled=true;
+  resetArena();newQuestion();
+  timer=setInterval(()=>{
+    remaining--;timeEl.textContent=remaining;timeBar.style.width=(remaining/total*100)+'%';
+    if(remaining%2===0) moveZombies(28);
+    if(remaining%5===0 && zombies.length<5) spawnZombie();
+    if(remaining<=0) endGame(false);
+  },1000);
+}
+
+function check(){
+  if(!running||aEl.value==='')return;
+  const v=Number(aEl.value);
+  if(v===answer){
+    score++;streak++;scoreEl.textContent=score;streakEl.textContent=streak;
+    blastZombie();
+    if(streak>0 && streak%5===0){
+      msgEl.textContent=`🔥 ${streak} in a row! MEGA ZAP!`;
+      msgEl.className='good';
+      if(zombies.length) blastZombie();
+    }else{
+      msgEl.textContent='✅ Correct — ZAP!';
+      msgEl.className='good';
+    }
+    newQuestion();
+  }else{
+    streak=0;streakEl.textContent=0;
+    msgEl.textContent='❌ Oops — the zombies shuffle closer!';
+    msgEl.className='bad';
+    moveZombies(42);
+    aEl.select();
+  }
+}
+
+function endGame(baseLost){
+  if(!running)return;
+  running=false;clearInterval(timer);timer=null;
+  aEl.disabled=true;skipBtn.disabled=true;startBtn.disabled=false;
+  if(score>best){best=score;localStorage.setItem('zombie-tt-best',best);bestEl.textContent=best}
+  finalScore.textContent=score;
+  if(baseLost){
+    endTitle.textContent='🧟 Oh no — the zombies reached the cheerleader!';
+    finalText.textContent=`You zapped ${zapped} zombies. Try again and save the cheerleader!`;
+  }else{
+    endTitle.textContent='🏁 Cheerleader saved!';
+    finalText.textContent=`You zapped ${zapped} zombies and scored ${score}. ${
+      score>=30?'Incredible zombie-zapping maths! 🌟':
+      score>=20?'Brilliant work! 🎉':
+      score>=10?'Great job! 💪':'Nice start — another round will make you faster! 🚀'
+    }`;
+  }
+  overlay.style.display='grid';
+}
+
+aEl.addEventListener('keydown',e=>{if(e.key==='Enter')check()});
+aEl.addEventListener('input',()=>{
+  if(String(aEl.value).length>=String(answer).length) check();
+});
+startBtn.addEventListener('click',startGame);
+skipBtn.addEventListener('click',()=>{
+  if(!running)return;
+  streak=0;streakEl.textContent=0;
+  msgEl.textContent=`The answer was ${answer}. Zombies move closer!`;
+  msgEl.className='';
+  moveZombies(30);
+  newQuestion();
+});
+againBtn.addEventListener('click',()=>{overlay.style.display='none';startGame()});
+</script>
+</body>
+</html>
