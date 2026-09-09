@@ -100,6 +100,7 @@ button,input,select{font:inherit}
   .battleTop{grid-template-columns:1fr}
   .fighter{font-size:7rem}
 }
+.soundBtn{position:fixed;right:16px;top:16px;z-index:30;width:52px;height:52px;border:3px solid #fff;border-radius:50%;background:#0d2745;color:#fff;font-size:1.45rem;cursor:pointer;box-shadow:0 5px 14px #0006}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -111,6 +112,7 @@ button,input,select{font:inherit}
 
 </head>
 <body>
+<button id="soundBtn" class="soundBtn" aria-label="Mute sound" title="Sound on">🔊</button>
 
 <!-- MENU -->
 <section id="menu" class="screen active">
@@ -250,6 +252,24 @@ button,input,select{font:inherit}
 </div>
 
 <script>
+let audioCtx=null,masterGain=null,musicGain=null,sfxGain=null,soundOn=true,musicTimer=null,musicStep=0;
+function initAudio(){if(!audioCtx){const A=window.AudioContext||window.webkitAudioContext;if(!A)return;audioCtx=new A();masterGain=audioCtx.createGain();masterGain.gain.value=.72;masterGain.connect(audioCtx.destination);musicGain=audioCtx.createGain();musicGain.gain.value=.13;musicGain.connect(masterGain);sfxGain=audioCtx.createGain();sfxGain.gain.value=.48;sfxGain.connect(masterGain)}if(audioCtx.state==='suspended')audioCtx.resume()}
+function tone(f,d=.12,type='sine',v=.2,delay=0,dest=null){initAudio();if(!audioCtx||!soundOn)return;const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.001,v),t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dest||sfxGain);o.start(t);o.stop(t+d+.03)}
+function noise(d=.18,v=.18,ff=700){initAudio();if(!audioCtx||!soundOn)return;const n=Math.floor(audioCtx.sampleRate*d),b=audioCtx.createBuffer(1,n,audioCtx.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();f.type='lowpass';f.frequency.value=ff;g.gain.value=v;s.buffer=b;s.connect(f);f.connect(g);g.connect(sfxGain);s.start()}
+function sfxCorrect(){tone(660,.08,'square',.13);tone(880,.12,'square',.12,.07)}
+function sfxWrong(){tone(190,.16,'sawtooth',.13);tone(145,.2,'sawtooth',.11,.11)}
+function sfxSquelch(){noise(.24,.24,520);initAudio();if(!audioCtx||!soundOn)return;const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(55,t+.24);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.0001,t+.25);o.connect(g);g.connect(sfxGain);o.start();o.stop(t+.27)}
+function sfxVictory(){[523,659,784,1047].forEach((n,i)=>tone(n,.22,'triangle',.18,i*.12));setTimeout(()=>[784,988,1175].forEach((n,i)=>tone(n,.38,'triangle',.14,i*.05)),470)}
+function sfxMonsterWin(){sfxSquelch();setTimeout(()=>{tone(150,.35,'sawtooth',.17);tone(92,.55,'square',.10,.18)},180)}
+const musicNotes=[261.63,329.63,392,329.63,293.66,349.23,440,349.23,246.94,293.66,392,293.66,220,261.63,329.63,392];
+function musicTick(){if(!soundOn||!audioCtx)return;const n=musicNotes[musicStep%musicNotes.length];tone(n,.18,'triangle',.055,0,musicGain);if(musicStep%4===0)tone(n/2,.25,'sine',.035,0,musicGain);musicStep++}
+function startMusic(){initAudio();if(!soundOn)return;stopMusic();musicStep=0;musicTick();musicTimer=setInterval(musicTick,285)}
+function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}}
+function toggleSound(){initAudio();soundOn=!soundOn;$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').title=soundOn?'Sound on':'Sound off';if(!soundOn)stopMusic();else if($('cheerGame').classList.contains('active')||$('monsterGame').classList.contains('active'))startMusic()}
+document.getElementById('soundBtn').addEventListener('click',toggleSound);
+</script>
+
+<script>
 const $=id=>document.getElementById(id);
 const menuTables=$('menuTables');
 for(let i=2;i<=12;i++){
@@ -267,10 +287,10 @@ function show(id){
   $(id).classList.add('active');
 }
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>{
-  stopCheer(); show('menu');
+  stopCheer(); stopMusic(); show('menu');
 }));
-$('playCheer').addEventListener('click',()=>{show('cheerGame');startCheer()});
-$('playMonster').addEventListener('click',()=>{show('monsterGame');resetMonster()});
+$('playCheer').addEventListener('click',()=>{initAudio();startMusic();show('cheerGame');startCheer()});
+$('playMonster').addEventListener('click',()=>{initAudio();startMusic();show('monsterGame');resetMonster()});
 
 /* ---------- Cheerleader ---------- */
 let cScore=0,cZapped=0,cRemaining=60,cTotal=60,cTimer=null,cAnswer=0,cRunning=false,cZombies=[];
@@ -317,16 +337,16 @@ function stopCheer(){clearInterval(cTimer);cTimer=null;cRunning=false}
 function checkCheer(){
   if(!cRunning||$('cAnswer').value==='')return;
   if(+$('cAnswer').value===cAnswer){
-    cScore++;$('cScore').textContent=cScore;zapZombie();$('cMessage').textContent='✅ Correct — ZAP!';$('cMessage').className='message good';newCQuestion();
+    cScore++;$('cScore').textContent=cScore;sfxCorrect();zapZombie();setTimeout(sfxSquelch,90);$('cMessage').textContent='✅ Correct — ZAP!';$('cMessage').className='message good';newCQuestion();
   }else{
-    $('cMessage').textContent=`❌ Wrong — it was ${cAnswer}. Zombies move closer!`;$('cMessage').className='message bad';moveZombies(42);$('cAnswer').select();
+    sfxWrong();$('cMessage').textContent=`❌ Wrong — it was ${cAnswer}. Zombies move closer!`;$('cMessage').className='message bad';moveZombies(42);$('cAnswer').select();
   }
 }
 function endCheer(won){
   if(!cRunning)return;stopCheer();
-  $('overlayTitle').textContent=won?'🏆 CHEERLEADER SAVED!':'🧟 THE ZOMBIES GOT THROUGH!';
+  stopMusic();if(won)sfxVictory();else sfxMonsterWin();$('overlayTitle').textContent=won?'🏆 CHEERLEADER SAVED!':'🧟 THE ZOMBIES GOT THROUGH!';
   $('overlayText').textContent=won?`You scored ${cScore} and zapped ${cZapped} zombies!`:`You scored ${cScore}. Try again and hold them off!`;
-  $('overlay').style.display='grid';$('overlayBtn').onclick=()=>{$('overlay').style.display='none';startCheer()};
+  $('overlay').style.display='grid';$('overlayBtn').onclick=()=>{$('overlay').style.display='none';startMusic();startCheer()};
 }
 $('cSubmit').onclick=checkCheer;$('cAnswer').addEventListener('keydown',e=>{if(e.key==='Enter')checkCheer()});$('cRestart').onclick=startCheer;
 
@@ -347,9 +367,9 @@ function resetMonster(){
 function checkMonster(){
   if(!mPlaying||$('mAnswer').value==='')return;
   if(+$('mAnswer').value===mAnswer){
-    monster--;anim($('heroSprite'),'attack');anim($('monsterSprite'),'hitAnim');$('mMessage').textContent='💥 Correct! Monster loses 1 point!';$('mMessage').className='message good';
+    monster--;sfxCorrect();anim($('heroSprite'),'attack');anim($('monsterSprite'),'hitAnim');$('mMessage').textContent='💥 Correct! Monster loses 1 point!';$('mMessage').className='message good';
   }else{
-    hero--;anim($('monsterSprite'),'attack');anim($('heroSprite'),'hitAnim');$('mMessage').textContent=`❌ Wrong — it was ${mAnswer}. You lose 1 point!`;$('mMessage').className='message bad';
+    hero--;sfxWrong();anim($('monsterSprite'),'attack');anim($('heroSprite'),'hitAnim');$('mMessage').textContent=`❌ Wrong — it was ${mAnswer}. You lose 1 point!`;$('mMessage').className='message bad';
   }
   updateBattle();
   if(monster<=0)return endMonster(true);
@@ -357,9 +377,9 @@ function checkMonster(){
   setTimeout(newMQuestion,400);
 }
 function endMonster(won){
-  mPlaying=false;$('overlayTitle').textContent=won?'🦸 SUPERHERO WINS!':'👹 MONSTER WINS!';
+  mPlaying=false;stopMusic();if(won)sfxVictory();else sfxMonsterWin();$('overlayTitle').textContent=won?'🦸 SUPERHERO WINS!':'👹 MONSTER WINS!';
   $('overlayText').textContent=won?'You defeated the monster with your times-table skills!':'The monster won this battle — try again and get your revenge!';
-  $('overlay').style.display='grid';$('overlayBtn').onclick=()=>{$('overlay').style.display='none';resetMonster()};
+  $('overlay').style.display='grid';$('overlayBtn').onclick=()=>{$('overlay').style.display='none';startMusic();resetMonster()};
 }
 $('mSubmit').onclick=checkMonster;$('mAnswer').addEventListener('keydown',e=>{if(e.key==='Enter')checkMonster()});$('mRestart').onclick=resetMonster;
 </script>
