@@ -253,19 +253,36 @@ button,input,select{font:inherit}
 
 <script>
 let audioCtx=null,masterGain=null,musicGain=null,sfxGain=null,soundOn=true,musicTimer=null,musicStep=0;
-function initAudio(){if(!audioCtx){const A=window.AudioContext||window.webkitAudioContext;if(!A)return;audioCtx=new A();masterGain=audioCtx.createGain();masterGain.gain.value=.72;masterGain.connect(audioCtx.destination);musicGain=audioCtx.createGain();musicGain.gain.value=.13;musicGain.connect(masterGain);sfxGain=audioCtx.createGain();sfxGain.gain.value=.48;sfxGain.connect(masterGain)}if(audioCtx.state==='suspended')audioCtx.resume()}
-function tone(f,d=.12,type='sine',v=.2,delay=0,dest=null){initAudio();if(!audioCtx||!soundOn)return;const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.001,v),t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dest||sfxGain);o.start(t);o.stop(t+d+.03)}
-function noise(d=.18,v=.18,ff=700){initAudio();if(!audioCtx||!soundOn)return;const n=Math.floor(audioCtx.sampleRate*d),b=audioCtx.createBuffer(1,n,audioCtx.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();f.type='lowpass';f.frequency.value=ff;g.gain.value=v;s.buffer=b;s.connect(f);f.connect(g);g.connect(sfxGain);s.start()}
+async function initAudio(){
+  if(!audioCtx){
+    const A=window.AudioContext||window.webkitAudioContext;
+    if(!A)return false;
+    audioCtx=new A();
+    masterGain=audioCtx.createGain(); masterGain.gain.value=.72; masterGain.connect(audioCtx.destination);
+    musicGain=audioCtx.createGain(); musicGain.gain.value=.13; musicGain.connect(masterGain);
+    sfxGain=audioCtx.createGain(); sfxGain.gain.value=.48; sfxGain.connect(masterGain);
+  }
+  if(audioCtx.state==='suspended'){
+    try{ await audioCtx.resume(); }catch(e){}
+  }
+  try{
+    const b=audioCtx.createBuffer(1,1,22050),s=audioCtx.createBufferSource();
+    s.buffer=b;s.connect(audioCtx.destination);s.start(0);
+  }catch(e){}
+  return audioCtx.state==='running';
+}
+function tone(f,d=.12,type='sine',v=.2,delay=0,dest=null){if(!audioCtx||audioCtx.state!=='running'||!soundOn)return;const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.001,v),t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dest||sfxGain);o.start(t);o.stop(t+d+.03)}
+function noise(d=.18,v=.18,ff=700){if(!audioCtx||audioCtx.state!=='running'||!soundOn)return;const n=Math.floor(audioCtx.sampleRate*d),b=audioCtx.createBuffer(1,n,audioCtx.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*(1-i/n);const s=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();f.type='lowpass';f.frequency.value=ff;g.gain.value=v;s.buffer=b;s.connect(f);f.connect(g);g.connect(sfxGain);s.start()}
 function sfxCorrect(){tone(660,.08,'square',.13);tone(880,.12,'square',.12,.07)}
 function sfxWrong(){tone(190,.16,'sawtooth',.13);tone(145,.2,'sawtooth',.11,.11)}
-function sfxSquelch(){noise(.24,.24,520);initAudio();if(!audioCtx||!soundOn)return;const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(55,t+.24);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.0001,t+.25);o.connect(g);g.connect(sfxGain);o.start();o.stop(t+.27)}
+function sfxSquelch(){noise(.24,.24,520);if(!audioCtx||audioCtx.state!=='running'||!soundOn)return;const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(55,t+.24);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.0001,t+.25);o.connect(g);g.connect(sfxGain);o.start();o.stop(t+.27)}
 function sfxVictory(){[523,659,784,1047].forEach((n,i)=>tone(n,.22,'triangle',.18,i*.12));setTimeout(()=>[784,988,1175].forEach((n,i)=>tone(n,.38,'triangle',.14,i*.05)),470)}
 function sfxMonsterWin(){sfxSquelch();setTimeout(()=>{tone(150,.35,'sawtooth',.17);tone(92,.55,'square',.10,.18)},180)}
 const musicNotes=[261.63,329.63,392,329.63,293.66,349.23,440,349.23,246.94,293.66,392,293.66,220,261.63,329.63,392];
 function musicTick(){if(!soundOn||!audioCtx)return;const n=musicNotes[musicStep%musicNotes.length];tone(n,.18,'triangle',.055,0,musicGain);if(musicStep%4===0)tone(n/2,.25,'sine',.035,0,musicGain);musicStep++}
-function startMusic(){initAudio();if(!soundOn)return;stopMusic();musicStep=0;musicTick();musicTimer=setInterval(musicTick,285)}
+function startMusic(){if(!audioCtx||audioCtx.state!=='running'||!soundOn)return;stopMusic();musicStep=0;musicTick();musicTimer=setInterval(musicTick,285)}
 function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}}
-function toggleSound(){initAudio();soundOn=!soundOn;$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').title=soundOn?'Sound on':'Sound off';if(!soundOn)stopMusic();else if($('cheerGame').classList.contains('active')||$('monsterGame').classList.contains('active'))startMusic()}
+async function toggleSound(){await initAudio();soundOn=!soundOn;$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').title=soundOn?'Sound on':'Sound off';if(!soundOn)stopMusic();else if($('cheerGame').classList.contains('active')||$('monsterGame').classList.contains('active'))startMusic()}
 document.getElementById('soundBtn').addEventListener('click',toggleSound);
 </script>
 
@@ -289,8 +306,8 @@ function show(id){
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>{
   stopCheer(); stopMusic(); show('menu');
 }));
-$('playCheer').addEventListener('click',()=>{initAudio();startMusic();show('cheerGame');startCheer()});
-$('playMonster').addEventListener('click',()=>{initAudio();startMusic();show('monsterGame');resetMonster()});
+$('playCheer').addEventListener('click',async()=>{await initAudio();show('cheerGame');tone(523,.08,'triangle',.06);startMusic();startCheer()});
+$('playMonster').addEventListener('click',async()=>{await initAudio();show('monsterGame');tone(523,.08,'triangle',.06);startMusic();resetMonster()});
 
 /* ---------- Cheerleader ---------- */
 let cScore=0,cZapped=0,cRemaining=60,cTotal=60,cTimer=null,cAnswer=0,cRunning=false,cZombies=[];

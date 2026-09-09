@@ -1,6 +1,15 @@
 {
-"name":"Times Tables Hero","short_name":"Maths Hero",
-"start_url":"./index.html","scope":"./","display":"standalone","orientation":"landscape",
-"background_color":"#0d2745","theme_color":"#0d2745",
-"icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png"}]
+  "name":"Times Tables Hero",
+  "short_name":"Maths Hero",
+  "description":"Times tables games: Save the Cheerleader and Defeat the Monster.",
+  "start_url":"./index.html",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"landscape",
+  "background_color":"#0d2745",
+  "theme_color":"#0d2745",
+  "icons":[
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+  ]
 }
